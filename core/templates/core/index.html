@@ -1,0 +1,9 @@
+{% extends "core/base.html" %}
+
+{% block title %}Nhom 12{% endblock title %}
+
+
+{% block content %}
+<a href="{% url "core:send" %}" class="px-6 py-3 text-lg font-semibld bg-teal-500 text-white rounded-xl hover:bg-teal-700">Send request</a>
+<h1 class="mt-5 font-semibold text-red-400">{{message}}</h1>
+{% endblock content %}
