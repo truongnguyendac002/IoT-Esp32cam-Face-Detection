@@ -5,6 +5,7 @@ import face_recognition
 import os
 import requests
 import shutil
+import pyodbc
 import time
 from datetime import datetime
 from azure.storage.blob import BlobServiceClient
@@ -13,9 +14,11 @@ from azure.storage.blob import BlobServiceClient
 
 # Create your views here.
 def index(request):
-    image_list = get_image_list
+    image_list = get_image_list()
+    history_list = get_history_as_list()
     return render(request, 'core/index.html', {
-        'image_list' : image_list
+        'image_list' : image_list,
+        'history_list': history_list
     })
     
 def send(request):
@@ -87,8 +90,9 @@ def compare_with_pic_folder(face_encodings):
                     # send_request_to_esp()  
                     ten = filename.split('-')[0]
                     updatePicture(ten)
+                    updateHistory(ten)
                     return True, message
-                
+
                 elif results[0]:
                     message+=(f"Khuôn mặt khớp với {filename} với độ chênh lệch: {faceDis[0]}")
                     # send_request_to_esp()  
@@ -152,3 +156,59 @@ def get_image_list():
             image_list.append(blob.name)
 
     return image_list
+
+def updateHistory(ten):
+    server = 'iotnhom12.database.windows.net'
+    database = 'iot-demo-nhom12'
+    username = 'iotnhom12'
+    password = 'Truong2072002'
+    driver = '{ODBC Driver 17 for SQL Server}'
+
+    # Tạo chuỗi kết nối đến cơ sở dữ liệu
+    conn_str = 'DRIVER=' + driver + ';SERVER=tcp:' + server + ';PORT=1433;DATABASE=' + database + ';UID=' + username + ';PWD=' + password
+
+    # Kết nối đến cơ sở dữ liệu
+    with pyodbc.connect(conn_str) as conn:
+        with conn.cursor() as cursor:
+ 
+            ten = ten
+            gio = datetime.datetime.now()
+            cheDo = "Face"  # Giá trị mặc định cho CheDo
+
+            # Tạo câu lệnh SQL để chèn dữ liệu vào bảng History
+            sql_query = f"INSERT INTO [dbo].[History] (Ten, Gio, CheDo) VALUES (?, ?, ?)"
+            cursor.execute(sql_query, ten, gio, cheDo)
+            conn.commit()  # Lưu thay đổi vào cơ sở dữ liệu
+    
+
+def get_history_as_list():
+    server = 'iotnhom12.database.windows.net'
+    database = 'iot-demo-nhom12'
+    username = 'iotnhom12'
+    password = 'Truong2072002'
+    driver = '{ODBC Driver 17 for SQL Server}'
+
+    # Tạo chuỗi kết nối đến cơ sở dữ liệu
+    conn_str = 'DRIVER=' + driver + ';SERVER=tcp:' + server + ';PORT=1433;DATABASE=' + database + ';UID=' + username + ';PWD=' + password
+
+    # Khởi tạo list để chứa các bản ghi từ bảng History
+    history_list = []
+
+    # Kết nối đến cơ sở dữ liệu
+    with pyodbc.connect(conn_str) as conn:
+        with conn.cursor() as cursor:
+            # Truy vấn tất cả các hàng từ bảng History
+            cursor.execute("SELECT * FROM [dbo].[History]")
+
+            # Lấy tên cột từ cursor.description
+            columns = [column[0] for column in cursor.description]
+
+            # Lấy tất cả các hàng dữ liệu
+            rows = cursor.fetchall()
+
+            # Thêm dữ liệu hàng vào list dưới dạng dictionaries
+            for row in rows:
+                history_dict = dict(zip(columns, row))
+                history_list.append(history_dict)
+
+    return history_list
