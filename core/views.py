@@ -6,12 +6,16 @@ import os
 import requests
 import shutil
 import time
-import serial
+from datetime import datetime
+from azure.storage.blob import BlobServiceClient
+
+
 
 # Create your views here.
 def index(request):
-  
+    image_list = get_image_list
     return render(request, 'core/index.html', {
+        'image_list' : image_list
     })
     
 def send(request):
@@ -33,7 +37,7 @@ def send(request):
 
 # Function to download image from ESP32
 def download_image_from_esp():
-    url = 'http://192.168.1.176'  # Replace with your ESP32's IP address
+    url = 'http://172.20.10.14'  # Replace with your ESP32's IP address
     response = requests.get(f'{url}/capture?_cb={int(round(time.time() * 1000))}', stream=True)
     if response.status_code == 200:
         with open(os.path.join(settings.MEDIA_ROOT, 'check.jpg'), 'wb') as out_file:
@@ -59,6 +63,8 @@ def encode_check_image():
 
 # Compare the downloaded image with images in the "pic" directory
 def compare_with_pic_folder(face_encodings):
+    
+    
     pic_folder = os.path.join(settings.MEDIA_ROOT, "pic")
     message = ""
     for filename in os.listdir(pic_folder):
@@ -76,7 +82,14 @@ def compare_with_pic_folder(face_encodings):
                 results = face_recognition.compare_faces([encodeUser], encodeCheck)
                 faceDis = face_recognition.face_distance([encodeUser], encodeCheck)
 
-                if results[0]:
+                if results[0] and faceDis[0] < 0.4:
+                    message+=(f"Khuôn mặt cực khớp với {filename} với độ chênh lệch: {faceDis[0]}")
+                    # send_request_to_esp()  
+                    ten = filename.split('-')[0]
+                    updatePicture(ten)
+                    return True, message
+                
+                elif results[0]:
                     message+=(f"Khuôn mặt khớp với {filename} với độ chênh lệch: {faceDis[0]}")
                     # send_request_to_esp()  
                     return True, message
@@ -84,7 +97,58 @@ def compare_with_pic_folder(face_encodings):
     return False, message
 
 
-# def send_request_to_esp():
-#     ser = serial.Serial('COM6', 9600)  # Thay đổi 'COM1' thành cổng serial của ESP32
-#     ser.write(b'authentication_successful')  # Gửi thông điệp đến ESP32
-#     ser.close()
+
+def updatePicture(ten):
+    #enter credentials
+    account_name = 'iotnhom12'
+    account_key = 'i9TSMSjG1HbCj2Uz+3bbFeiMis2kSrS6P5Dm1le9C3mn99L4vTcFM6tHNzmnWL/B2Udk9Ggr/zvs+AStvTZO/w=='
+    container_name = 'picture'
+
+    #create a client to interact with blob storage
+    connect_str = 'DefaultEndpointsProtocol=https;AccountName=' + account_name + ';AccountKey=' + account_key + ';EndpointSuffix=core.windows.net'
+    blob_service_client = BlobServiceClient.from_connection_string(connect_str)
+
+    #use the client to connect to the container
+    container_client = blob_service_client.get_container_client(container_name)
+
+    
+    blob_list = container_client.list_blobs()
+    
+    # Tìm số cuối cùng trong tên file để tăng lên một đơn vị
+    
+    # Lấy giờ và ngày hiện tại
+    now = datetime.now()
+    hour = now.strftime("%I-%M%p")  # Giờ:PhútAM/PM
+    date = now.strftime("%d-%m-%Y")  # Ngày-Tháng-Năm
+
+    # Tạo tên file mới
+    new_filename = f'{ten}-{hour}-{date}.jpg'
+    # Đường dẫn tới file check.jsp
+    local_file_path = os.path.join(settings.MEDIA_ROOT, 'check.jpg')
+
+    # Tải file lên Blob Storage với tên mới đã tạo
+    blob_client = container_client.get_blob_client(new_filename)
+    with open(local_file_path, "rb") as data:
+        blob_client.upload_blob(data)
+
+def get_image_list():
+    #enter credentials
+    account_name = 'iotnhom12'
+    account_key = 'i9TSMSjG1HbCj2Uz+3bbFeiMis2kSrS6P5Dm1le9C3mn99L4vTcFM6tHNzmnWL/B2Udk9Ggr/zvs+AStvTZO/w=='
+    container_name = 'picture'
+
+    #create a client to interact with blob storage
+    connect_str = 'DefaultEndpointsProtocol=https;AccountName=' + account_name + ';AccountKey=' + account_key + ';EndpointSuffix=core.windows.net'
+    blob_service_client = BlobServiceClient.from_connection_string(connect_str)
+
+    #use the client to connect to the container
+    container_client = blob_service_client.get_container_client(container_name)
+
+    blob_list = container_client.list_blobs()
+
+    image_list = []
+    for blob in blob_list:
+        if blob.name.endswith('.jpg'):
+            image_list.append(blob.name)
+
+    return image_list

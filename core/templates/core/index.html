@@ -6,4 +6,14 @@
 {% block content %}
 <a href="{% url "core:send" %}" class="px-6 py-3 text-lg font-semibld bg-teal-500 text-white rounded-xl hover:bg-teal-700">Send request</a>
 <h1 class="mt-5 font-semibold text-red-400">{{message}}</h1>
+
+<div class="image-container">
+    {% for image in image_list %}
+    <p>{{ image }}</p>
+    <img src="https://iotnhom12.blob.core.windows.net/picture/{{image}}?sp=r&st=2023-11-24T04:14:16Z&se=2023-11-24T12:14:16Z&sv=2022-11-02&sr=c&sig=lkKseByA5FWpbTj5rgjfNXzgKkY7MjpFqrPQ0VXniac%3D" alt="{{ image }}" class="image-item" />
+    {% endfor %}
+</div>
+
 {% endblock content %}
+
+
