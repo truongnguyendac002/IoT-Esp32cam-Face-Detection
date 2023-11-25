@@ -7,7 +7,8 @@ import requests
 import shutil
 import pyodbc
 import time
-from datetime import datetime
+import speech_recognition as sr
+from datetime import datetime as dt
 from azure.storage.blob import BlobServiceClient
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
@@ -25,27 +26,51 @@ def index(request):
 
 @login_required
 def open(request):
+    updateHistory(request.user.username + ' đã mở cửa', 'Manual')
     image_list = get_image_list()
     history_list = get_history_as_list()
     return render(request, 'core/index.html', {
         'image_list' : image_list,
-        'history_list': history_list
+        'history_list': history_list,
+        'message': 'Cửa đã mở'
     })
 def close(request):
     image_list = get_image_list()
     history_list = get_history_as_list()
     return render(request, 'core/index.html', {
         'image_list' : image_list,
-        'history_list': history_list
+        'history_list': history_list,
+        'message': 'Cửa đã đóng'
     })
 
 @login_required
 def voice(request):
+    
+
+    # get audio from the microphone 
+    r = sr.Recognizer() 
+    with sr.Microphone() as source: 
+        print('Speak:') 
+        audio = r.listen(source)
+    message = ''
+    try:
+        recognized_text = r.recognize_google(audio)
+        message += ('Bạn đã nói: ' + recognized_text)
+        if "open the door" in recognized_text.lower():
+            updateHistory(request.user.username + ' đã mở cửa', 'Voice')
+
+        
+    except sr.UnknownValueError:
+        print('Không thể nhận diện giọng nói.')
+    except sr.RequestError as e:
+        print('Không xử lý được kết quả; {0}'.format(e))
+
     image_list = get_image_list()
     history_list = get_history_as_list()
     return render(request, 'core/index.html', {
         'image_list' : image_list,
-        'history_list': history_list
+        'history_list': history_list,
+        'message':message
     })
     
 def send(request):
@@ -120,7 +145,7 @@ def compare_with_pic_folder(face_encodings):
                     # send_request_to_esp()  
                     ten = filename.split('-')[0]
                     updatePicture(ten)
-                    updateHistory(ten)
+                    updateHistory(ten+' đã mở cửa', 'Face')
                     return True, message
 
                 elif results[0]:
@@ -151,7 +176,7 @@ def updatePicture(ten):
     # Tìm số cuối cùng trong tên file để tăng lên một đơn vị
     
     # Lấy giờ và ngày hiện tại
-    now = datetime.now()
+    now = dt.now()
     hour = now.strftime("%I-%M%p")  # Giờ:PhútAM/PM
     date = now.strftime("%d-%m-%Y")  # Ngày-Tháng-Năm
 
@@ -187,7 +212,7 @@ def get_image_list():
 
     return image_list
 
-def updateHistory(ten):
+def updateHistory(ten, mode):
     server = 'iotnhom12.database.windows.net'
     database = 'iot-demo-nhom12'
     username = 'iotnhom12'
@@ -202,8 +227,8 @@ def updateHistory(ten):
         with conn.cursor() as cursor:
  
             ten = ten
-            gio = datetime.datetime.now()
-            cheDo = "Face"  # Giá trị mặc định cho CheDo
+            gio = dt.now()
+            cheDo = mode  # Giá trị mặc định cho CheDo
 
             # Tạo câu lệnh SQL để chèn dữ liệu vào bảng History
             sql_query = f"INSERT INTO [dbo].[History] (Ten, Gio, CheDo) VALUES (?, ?, ?)"
