@@ -4,17 +4,22 @@
 
 
 {% block content %}
-<a href="{% url "core:send" %}" class="px-6 py-3 text-lg font-semibld bg-teal-500 text-white rounded-xl hover:bg-teal-700">Send request</a>
-<h1 class="mt-5 font-semibold text-red-400">{{message}}</h1>
+<div class="sm:flex sm:justify-around mt-8">
+    <a href="#" class="px-4 py-2 text-sm sm:text-lg font-semibold bg-blue-500 text-white rounded-xl hover:bg-blue-700 mb-4 sm:mb-0 sm:mr-4">Thủ công</a>
+    <a href="{% url "core:send" %}" class="px-4 py-2 text-sm sm:text-lg font-semibold bg-teal-500 text-white rounded-xl hover:bg-teal-700 mb-4 sm:mb-0 sm:mr-4">Khuôn mặt</a>
+    <a href="#" class="px-4 py-2 text-sm sm:text-lg font-semibold bg-yellow-500 text-white rounded-xl hover:bg-yellow-700 mb-4 sm:mb-0 sm:mr-4">Giọng nói</a>
+    <a href="#" class="px-4 py-2 text-sm sm:text-lg font-semibold bg-red-500 text-white rounded-xl hover:bg-red-700">Đóng cửa</a>
+</div>
 
+<h1 class="mt-5 font-semibold text-red-400 text-sm sm:text-lg">{{message}}</h1>
 
-<div class="history-container mt-8">
+<div class="sm:history-container mt-8">
     <table class="min-w-full">
         <thead>
             <tr>
                 <th class="px-4 py-2 text-left bg-gray-200">Tên</th>
-                <th class="px-4 py-2 text-left bg-gray-200">Gio</th>
-                <th class="px-4 py-2 text-left bg-gray-200">CheDo</th>
+                <th class="px-4 py-2 text-left bg-gray-200">Giờ</th>
+                <th class="px-4 py-2 text-left bg-gray-200">Chế độ</th>
             </tr>
         </thead>
         <tbody>
@@ -29,7 +34,7 @@
     </table>
 </div>
 <div>
-    <h1 class="pt-4"><strong>Camera history:</strong></h1>
+    <h1 class="pt-4"><strong>Lịch sử camera:</strong></h1>
 </div>
 <div class="mt-8 image-container grid grid-cols-3 gap-4">
     {% for image in image_list %}
