@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.conf import settings
 import cv2
 import face_recognition
-import os
+import os,io
 import requests
 import shutil
 import pyodbc
@@ -53,10 +53,10 @@ def send(request):
     if download_image_from_esp():
         face_encodings, m = encode_check_image()
         message+=m
-        match_found, m = compare_with_pic_folder(face_encodings)
+        match_found, m = compare_with_blob_images(face_encodings)
         message+=m
         if not match_found:
-            message += ("Không tìm thấy khuôn mặt khớp trong thư mục 'pic'")
+            message += ("Không tìm thấy khuôn mặt khớp trong cơ sở dữ liệu")
     else:
         message+=("Lỗi khi tải hình ảnh từ ESP32")
     
@@ -98,8 +98,7 @@ def encode_check_image():
 
 # Compare the downloaded image with images in the "pic" directory
 def compare_with_pic_folder(face_encodings):
-    
-    
+
     pic_folder = os.path.join(settings.MEDIA_ROOT, "pic")
     message = ""
     for filename in os.listdir(pic_folder):
@@ -111,7 +110,6 @@ def compare_with_pic_folder(face_encodings):
         pic_face_encodings = face_recognition.face_encodings(imgUser)
 
         # Compare all face encodings from "check.jpg" with face encodings from "pic" folder
-        
         for encodeCheck in face_encodings:
             for encodeUser in pic_face_encodings:
                 results = face_recognition.compare_faces([encodeUser], encodeCheck)
@@ -244,6 +242,54 @@ def get_history_as_list():
                 history_list.append(history_dict)
 
     return history_list
+
+# Compare the downloaded image with images in the "pic" directory
+def compare_with_blob_images(face_encodings):
+    #enter credentials
+    account_name = 'iotnhom12'
+    account_key = 'i9TSMSjG1HbCj2Uz+3bbFeiMis2kSrS6P5Dm1le9C3mn99L4vTcFM6tHNzmnWL/B2Udk9Ggr/zvs+AStvTZO/w=='
+    container_name = 'auth'
+
+    #create a client to interact with blob storage
+    connect_str = 'DefaultEndpointsProtocol=https;AccountName=' + account_name + ';AccountKey=' + account_key + ';EndpointSuffix=core.windows.net'
+    blob_service_client = BlobServiceClient.from_connection_string(connect_str)
+
+    #use the client to connect to the container
+    container_client = blob_service_client.get_container_client(container_name)
+    # Get the list of image names from Azure Blob Storage
+    image_list = get_image_list()
+
+    message = ""
+    for image_name in image_list:
+        blob_client = container_client.get_blob_client(image_name)
+        blob_data = blob_client.download_blob()
+        img_data = blob_data.readall()
+
+        # Load and decode the image from blob data
+        imgUser = face_recognition.load_image_file(io.BytesIO(img_data))
+        imgUser = cv2.cvtColor(imgUser, cv2.COLOR_BGR2RGB)
+
+        # Encode all faces found in the image from Blob
+        pic_face_encodings = face_recognition.face_encodings(imgUser)
+
+        # Compare all face encodings from "check.jpg" with face encodings from Blob
+        for encodeCheck in face_encodings:
+            for encodeUser in pic_face_encodings:
+                results = face_recognition.compare_faces([encodeUser], encodeCheck)
+                faceDis = face_recognition.face_distance([encodeUser], encodeCheck)
+
+                if results[0] and faceDis[0] < 0.4:
+                    message += f"Khuôn mặt cực khớp với {image_name} với độ chênh lệch: {faceDis[0]}"
+                    # Do something with the matched face
+                    return True, message
+
+                elif results[0]:
+                    message += f"Khuôn mặt khớp với {image_name} với độ chênh lệch: {faceDis[0]}"
+                    # Do something with the matched face
+                    return True, message
+
+    print(message)
+    return False, message
 
 
 
