@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.conf import settings
 import cv2
 import face_recognition
@@ -9,11 +9,38 @@ import pyodbc
 import time
 from datetime import datetime
 from azure.storage.blob import BlobServiceClient
+from django.contrib.auth import logout
+from django.contrib.auth.decorators import login_required
 
 
 
 # Create your views here.
 def index(request):
+    image_list = get_image_list()
+    history_list = get_history_as_list()
+    return render(request, 'core/index.html', {
+        'image_list' : image_list,
+        'history_list': history_list
+    })
+
+@login_required
+def open(request):
+    image_list = get_image_list()
+    history_list = get_history_as_list()
+    return render(request, 'core/index.html', {
+        'image_list' : image_list,
+        'history_list': history_list
+    })
+def close(request):
+    image_list = get_image_list()
+    history_list = get_history_as_list()
+    return render(request, 'core/index.html', {
+        'image_list' : image_list,
+        'history_list': history_list
+    })
+
+@login_required
+def voice(request):
     image_list = get_image_list()
     history_list = get_history_as_list()
     return render(request, 'core/index.html', {
@@ -32,8 +59,13 @@ def send(request):
             message += ("Không tìm thấy khuôn mặt khớp trong thư mục 'pic'")
     else:
         message+=("Lỗi khi tải hình ảnh từ ESP32")
+    
+    image_list = get_image_list()
+    history_list = get_history_as_list()
     return render(request, 'core/index.html', {
-        'message': message
+        'message': message,
+        'image_list': image_list,
+        'history_list':history_list
     })
     
 
@@ -212,3 +244,10 @@ def get_history_as_list():
                 history_list.append(history_dict)
 
     return history_list
+
+
+
+def logout_view(request):
+    logout(request)
+
+    return redirect('core:index')

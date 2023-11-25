@@ -4,11 +4,14 @@
 
 
 {% block content %}
+
+
+
 <div class="sm:flex sm:justify-around mt-8">
-    <a href="#" class="px-4 py-2 text-sm sm:text-lg font-semibold bg-blue-500 text-white rounded-xl hover:bg-blue-700 mb-4 sm:mb-0 sm:mr-4">Thủ công</a>
+    <a href="{% url "core:open" %}" class="px-4 py-2 text-sm sm:text-lg font-semibold bg-blue-500 text-white rounded-xl hover:bg-blue-700 mb-4 sm:mb-0 sm:mr-4">Mở thủ công</a>
     <a href="{% url "core:send" %}" class="px-4 py-2 text-sm sm:text-lg font-semibold bg-teal-500 text-white rounded-xl hover:bg-teal-700 mb-4 sm:mb-0 sm:mr-4">Khuôn mặt</a>
-    <a href="#" class="px-4 py-2 text-sm sm:text-lg font-semibold bg-yellow-500 text-white rounded-xl hover:bg-yellow-700 mb-4 sm:mb-0 sm:mr-4">Giọng nói</a>
-    <a href="#" class="px-4 py-2 text-sm sm:text-lg font-semibold bg-red-500 text-white rounded-xl hover:bg-red-700">Đóng cửa</a>
+    <a href="{% url "core:voice" %}" class="px-4 py-2 text-sm sm:text-lg font-semibold bg-yellow-500 text-white rounded-xl hover:bg-yellow-700 mb-4 sm:mb-0 sm:mr-4">Giọng nói</a>
+    <a href="{% url "core:close" %}" class="px-4 py-2 text-sm sm:text-lg font-semibold bg-red-500 text-white rounded-xl hover:bg-red-700">Đóng cửa</a>
 </div>
 
 <h1 class="mt-5 font-semibold text-red-400 text-sm sm:text-lg">{{message}}</h1>
@@ -40,7 +43,7 @@
     {% for image in image_list %}
     <div class="relative">
         <p class="absolute top-2 left-2 text-white bg-gray-800 p-2 rounded">{{ image }}</p>
-        <img src="https://iotnhom12.blob.core.windows.net/picture/{{image}}?sp=r&st=2023-11-24T04:14:16Z&se=2023-11-24T12:14:16Z&sv=2022-11-02&sr=c&sig=lkKseByA5FWpbTj5rgjfNXzgKkY7MjpFqrPQ0VXniac%3D" alt="{{ image }}" class="image-item w-full h-auto rounded-lg shadow-md" />
+        <img src="https://iotnhom12.blob.core.windows.net/picture/{{image}}?sp=r&st=2023-11-25T04:05:03Z&se=2023-11-28T12:05:03Z&sip=1.54.176.167&sv=2022-11-02&sr=c&sig=TRe6LMHx9gua%2Fs%2BC34gzQk0Io%2BtHy1lvrBKz6jg6MWw%3D" alt="{{ image }}" class="image-item w-full h-auto rounded-lg shadow-md" />
     </div>
     {% endfor %}
 </div>
