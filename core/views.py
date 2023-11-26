@@ -12,10 +12,26 @@ from datetime import datetime as dt
 from azure.storage.blob import BlobServiceClient
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
+import paho.mqtt.client as mqtt
+import time
 
 
 
 # Create your views here.
+def on_publish(client, userdata, mid):
+    print(f"Message {mid} published successfully")
+
+def on_message(client, userdata, message):
+    print(f"Received from ESP32-CAM: {message.payload.decode()}")
+
+client = mqtt.Client()
+client.on_publish = on_publish
+client.on_message = on_message
+client.connect("test.mosquitto.org", 1883, 60)
+client.subscribe("door_control")
+client.loop_start()
+
+
 def index(request):
     image_list = get_image_list()
     history_list = get_history_as_list()
@@ -23,12 +39,49 @@ def index(request):
         'image_list' : image_list,
         'history_list': history_list
     })
-
+    
+@login_required
+def auto(request):
+    updateHistory(request.user.username + ' bật hồng ngoại', 'auto')
+    image_list = get_image_list()
+    history_list = get_history_as_list()
+    result = client.publish("door_control", "bat_hong_ngoai")
+    print(f"Result: {result.rc}")
+    time.sleep(5)
+    
+    
+    return render(request, 'core/index.html', {
+        'image_list' : image_list,
+        'history_list': history_list,
+        'message': 'Cửa đã mở'
+    })
+    
+@login_required
+def stopauto(request):
+    updateHistory(request.user.username + ' tắt hồng ngoại', 'auto')
+    image_list = get_image_list()
+    history_list = get_history_as_list()
+    result = client.publish("door_control", "tat_hong_ngoai")
+    print(f"Result: {result.rc}")
+    time.sleep(5)
+    
+    
+    return render(request, 'core/index.html', {
+        'image_list' : image_list,
+        'history_list': history_list,
+        'message': 'Cửa đã mở'
+    })
+    
 @login_required
 def open(request):
     updateHistory(request.user.username + ' đã mở cửa', 'Manual')
     image_list = get_image_list()
     history_list = get_history_as_list()
+    result = client.publish("door_control", "open_door")
+    print(f"Result: {result.rc}")
+    time.sleep(5)
+    
+    
     return render(request, 'core/index.html', {
         'image_list' : image_list,
         'history_list': history_list,
@@ -37,6 +90,11 @@ def open(request):
 def close(request):
     image_list = get_image_list()
     history_list = get_history_as_list()
+    
+    result = client.publish("door_control", "close_door")
+    print(f"Result: {result.rc}")
+    time.sleep(5)
+    
     return render(request, 'core/index.html', {
         'image_list' : image_list,
         'history_list': history_list,
@@ -57,8 +115,16 @@ def voice(request):
         recognized_text = r.recognize_google(audio)
         message += ('Bạn đã nói: ' + recognized_text)
         if "open the door" in recognized_text.lower():
+            
+            result = client.publish("door_control", "open_door")
+            print(f"Result: {result.rc}")
+            time.sleep(5)
             updateHistory(request.user.username + ' đã mở cửa', 'Voice')
 
+        elif "close the door" in recognized_text.lower():
+            result = client.publish("door_control", "close_door")
+            print(f"Result: {result.rc}")
+            time.sleep(5)
         
     except sr.UnknownValueError:
         print('Không thể nhận diện giọng nói.')
@@ -82,6 +148,7 @@ def send(request):
         message+=m
         if not match_found:
             message += ("Không tìm thấy khuôn mặt khớp trong cơ sở dữ liệu")
+        
     else:
         message+=("Lỗi khi tải hình ảnh từ ESP32")
     
@@ -97,7 +164,7 @@ def send(request):
 
 # Function to download image from ESP32
 def download_image_from_esp():
-    url = 'http://172.20.10.14'  # Replace with your ESP32's IP address
+    url = 'http://192.168.1.176/'  # Replace with your ESP32's IP address
     response = requests.get(f'{url}/capture?_cb={int(round(time.time() * 1000))}', stream=True)
     if response.status_code == 200:
         with open(os.path.join(settings.MEDIA_ROOT, 'check.jpg'), 'wb') as out_file:
@@ -146,6 +213,10 @@ def compare_with_pic_folder(face_encodings):
                     ten = filename.split('-')[0]
                     updatePicture(ten)
                     updateHistory(ten+' đã mở cửa', 'Face')
+                    
+                    result = client.publish("door_control", "open_door")
+                    print(f"Result: {result.rc}")
+                    time.sleep(5)
                     return True, message
 
                 elif results[0]:
@@ -322,3 +393,4 @@ def logout_view(request):
     logout(request)
 
     return redirect('core:index')
+

@@ -12,6 +12,9 @@ urlpatterns = [
     path('send/', views.send, name='send'),
     path('open/', views.open, name='open'),
     path('close/', views.close, name='close'),
+    path('auto/', views.auto, name='auto'),
+    path('stopauto/', views.stopauto, name='stopauto'),
+    
     path('voice/', views.voice, name='voice'),
     path('login/', auth_views.LoginView.as_view(template_name= 'core/login.html',authentication_form = LoginForm), name='login'),
     path('logout/', views.logout_view, name='logout'),
